@@ -12,11 +12,28 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
+import android.graphics.Color
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.bspapp.util.triggerTestNotification
-
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.compose.runtime.SideEffect
+import com.google.accompanist.systemuicontroller.SystemUiController
 
 @Composable
 fun PredictionScreen(navController: NavController, username: String, password: String) {
+    // for toolbar writing color
+    val systemUiController = rememberSystemUiController()
+    val useDarkIcons = true // dark icons on light background
+
+    SideEffect {
+        systemUiController.setSystemBarsColor(
+            color = androidx.compose.ui.graphics.Color.White,
+            darkIcons = useDarkIcons
+        )
+    }
+
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var predictionData by remember { mutableStateOf<List<Pair<Float, Float>>?>(null) }
@@ -28,6 +45,20 @@ fun PredictionScreen(navController: NavController, username: String, password: S
     val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
     var notificationsEnabled by remember {
         mutableStateOf(prefs.getBoolean("notifications_enabled", true))
+    }
+
+    //for 5 minute per screen update
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isActive by remember { mutableStateOf(true) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isActive = event == Lifecycle.Event.ON_RESUME
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     fun extractTriplets(number: Int): List<Pair<Float, Float>> {
@@ -85,7 +116,16 @@ fun PredictionScreen(navController: NavController, username: String, password: S
     }
 
     LaunchedEffect(Unit) {
+        // triggering an initial fetch
         fetchPrediction()
+        // triggering with 5 min intervals
+        while (true) {
+            delay(5 * 60 * 1000L) // 5 minutes
+            if (isActive) {
+                Log.d("BSP", "⏱ Triggering periodic prediction refresh")
+                fetchPrediction()
+            }
+        }
     }
 
     when {
@@ -151,4 +191,8 @@ fun PredictionScreen(navController: NavController, username: String, password: S
             }
         }
     }
+}
+
+private fun SystemUiController.setSystemBarsColor(color: Int, darkIcons: Boolean) {
+    return
 }

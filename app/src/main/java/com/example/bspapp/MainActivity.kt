@@ -1,6 +1,7 @@
 package com.example.bspapp
 
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,6 +24,7 @@ import com.github.mikephil.charting.utils.Utils
 
 import androidx.work.*
 import com.example.bspapp.background.BspFetchWorker
+import com.example.bspapp.util.AppStateMonitor
 import com.example.bspapp.util.createNotificationChannel
 
 class MainActivity : ComponentActivity() {
@@ -35,6 +37,10 @@ class MainActivity : ComponentActivity() {
 
         // ✅ Init MPAndroidChart for the graphing lib
         Utils.init(this)
+
+        // for app state (foreground vs. background monitoring)
+        AppStateMonitor.initialize(application)
+
 
         setContent {
             val navController = rememberNavController()

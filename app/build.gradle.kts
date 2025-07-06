@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.lifecycle.process)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -83,5 +84,8 @@ dependencies {
 
     // background execution
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // taskbar writing color
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.30.1")
     //
 }

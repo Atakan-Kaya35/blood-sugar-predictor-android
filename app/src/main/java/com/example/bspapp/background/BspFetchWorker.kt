@@ -4,10 +4,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.bspapp.R
+import com.example.bspapp.util.AppStateMonitor
 import com.example.bspapp.util.postRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,11 +22,12 @@ class BspFetchWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            val notifEnabled = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-                .getBoolean("notifications_enabled", true)
+            if (!AppStateMonitor.isForeground()) {
+                val notifEnabled = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+                    .getBoolean("notifications_enabled", true)
 
-            if (!notifEnabled) return@withContext Result.success()
-            else{
+                if (!notifEnabled) return@withContext Result.success()
+
                 val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
                 val rawCreds = prefs.getString("credentials", null)
                 if (rawCreds.isNullOrEmpty()) return@withContext Result.failure()
@@ -58,11 +61,14 @@ class BspFetchWorker(
                 if (plateau == 1) notify("⏸️ Plateau Expected", "Glucose may stabilize. Monitor it.")
                 if (trendChange != 0) notify("🔄 Trend Change", "Upcoming trend shift detected.")
 
-                Result.success()
+                return@withContext Result.success()
+            } else {
+                Log.d("BSP", "⏸ Skipping background fetch — app is in foreground")
+                return@withContext Result.success() // <- Add this!
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.retry()
+            return@withContext Result.retry()
         }
     }
 
