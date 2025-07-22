@@ -1,4 +1,4 @@
-package com.example.bspapp.util
+package com.ataka.bspapp.util
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

@@ -1,4 +1,4 @@
-package com.example.bspapp.ui.theme
+package com.ataka.bspapp.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

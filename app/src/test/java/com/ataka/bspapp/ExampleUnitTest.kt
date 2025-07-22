@@ -1,4 +1,4 @@
-package com.example.bspapp
+package com.ataka.bspapp
 
 import org.junit.Test
 

@@ -1,4 +1,4 @@
-package com.example.bspapp.ui
+package com.ataka.bspapp.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -8,10 +8,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.*
-import java.net.HttpURLConnection
-import java.net.URL
 import org.json.JSONObject
-import com.example.bspapp.util.postRequest
+import com.ataka.bspapp.util.postRequest
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
@@ -66,7 +64,7 @@ fun StartTrainingScreen(
                     put("num_of_layers", 3)
                 }
 
-                delay(waitTimeMins * 60 * 1000L) // specified number of minutes
+                //delay(waitTimeMins * 60 * 1000L) // specified number of minutes
 
                 val trainResponse = postRequest(
                     "https://7gh3eu50xc.execute-api.eu-central-1.amazonaws.com/dev/training_job_trigger",
@@ -102,7 +100,7 @@ fun StartTrainingScreen(
                     put("num_of_layers", 5)
                 }
 
-                delay(waitTimeMins * 60 * 1000L) // specified number of minutes
+                //delay(waitTimeMins * 60 * 1000L) // specified number of minutes
 
                 val response = postRequest(
                     "https://7gh3eu50xc.execute-api.eu-central-1.amazonaws.com/dev/training_job_trigger",

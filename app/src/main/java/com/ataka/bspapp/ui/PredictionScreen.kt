@@ -1,31 +1,32 @@
-package com.example.bspapp.ui
+package com.ataka.bspapp.ui
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.bspapp.util.postRequest
+import com.ataka.bspapp.util.postRequest
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import androidx.compose.ui.platform.LocalContext
-import android.content.Context
-import android.graphics.Color
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.bspapp.util.triggerTestNotification
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import androidx.compose.runtime.SideEffect
 import com.google.accompanist.systemuicontroller.SystemUiController
+import androidx.compose.runtime.livedata.observeAsState
+import com.ataka.bspapp.data.PredictionManager
+import com.ataka.bspapp.data.PredictionRepository
 
 @Composable
 fun PredictionScreen(navController: NavController, username: String, password: String) {
-    // for toolbar writing color
     val systemUiController = rememberSystemUiController()
-    val useDarkIcons = true // dark icons on light background
+    val useDarkIcons = true
 
     SideEffect {
         systemUiController.setSystemBarsColor(
@@ -34,12 +35,7 @@ fun PredictionScreen(navController: NavController, username: String, password: S
         )
     }
 
-    var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var predictionData by remember { mutableStateOf<List<Pair<Float, Float>>?>(null) }
-    var indicators by remember { mutableStateOf(0) }
     val context = LocalContext.current
-
     val coroutineScope = rememberCoroutineScope()
 
     val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
@@ -47,57 +43,20 @@ fun PredictionScreen(navController: NavController, username: String, password: S
         mutableStateOf(prefs.getBoolean("notifications_enabled", true))
     }
 
-    //for 5 minute per screen update
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var isActive by remember { mutableStateOf(true) }
+    // Observe global prediction data (raw JSON string)
+    val predictionString by PredictionRepository.predictions.observeAsState("")
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            isActive = event == Lifecycle.Event.ON_RESUME
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var predictionData by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
+    var indicators by remember { mutableStateOf(0) }
 
-    fun extractTriplets(number: Int): List<Pair<Float, Float>> {
-        val a = (number / 1_000_000) % 1000
-        val b = (number / 1_000) % 1000
-        val c = number % 1000
-        return listOf(a, b, c).map {
-            // ✅ Clamp values to safe range for rendering
-            val clamped = it.coerceIn(30, 300)
-            clamped.toFloat() to 0.5f
-        }
-    }
-
-    fun fetchPrediction() {
-        coroutineScope.launch {
-            Log.d("BSP", "🚀 Sending prediction request for $username")
+    // Parse the latest prediction string when it changes
+    LaunchedEffect(predictionString) {
+        Log.d("BSP", "🔍 Observed predictionString change 1: $predictionString")
+        if (predictionString.isNotEmpty()) {
             try {
-                val body = JSONObject().apply {
-                    put("username", username)
-                    put("password", password)
-                }
-
-                Log.d("BSP", "REQUEST BODY: $body")
-
-                val (success, responseText) = withContext(Dispatchers.IO) {
-                    postRequest(
-                        "https://7gh3eu50xc.execute-api.eu-central-1.amazonaws.com/dev/inference",
-                        body.toString()
-                    )
-                }
-
-                Log.d("BSP", "RESPONSE: $responseText")
-
-                if (!success) throw Exception("Request failed: $responseText")
-
-                // save preferences to contxt after making sure call successful
-                prefs.edit().putString("credentials", body.toString()).apply()
-
-                val response = JSONObject(responseText)
+                val response = JSONObject(predictionString)
                 val fullList = extractTriplets(response.getInt("befores2")) +
                         extractTriplets(response.getInt("befores1")) +
                         extractTriplets(response.getInt("befores")) +
@@ -106,19 +65,39 @@ fun PredictionScreen(navController: NavController, username: String, password: S
                 indicators = response.getInt("indicators")
                 predictionData = fullList
                 error = null
+                loading = false
             } catch (e: Exception) {
-                Log.e("BSP", "❌ Failed to fetch prediction", e)
-                error = "Prediction failed: ${e.message ?: "Unknown"}"
-            } finally {
+                Log.e("BSP", "❌ Failed to parse prediction", e)
+                error = "Parse error: ${e.message ?: "Unknown"}"
+            }
+        }
+    }
+
+    // Lifecycle awareness for 5-minute refresh
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isActive by remember { mutableStateOf(true) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isActive = event == Lifecycle.Event.ON_RESUME
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    fun fetchPrediction() {
+        coroutineScope.launch {
+            loading = true
+            val success = PredictionManager.fetchLatestInference(username, password, context)
+            if (!success) {
+                error = "Prediction failed: see logs"
                 loading = false
             }
         }
     }
 
     LaunchedEffect(Unit) {
-        // triggering an initial fetch
-        fetchPrediction()
-        // triggering with 5 min intervals
+        Log.d("BSP", "🔍 Observed predictionString change: $predictionString")
+        fetchPrediction() // initial fetch
         while (true) {
             delay(5 * 60 * 1000L) // 5 minutes
             if (isActive) {
@@ -139,19 +118,14 @@ fun PredictionScreen(navController: NavController, username: String, password: S
                 Text(error ?: "Unknown error", color = MaterialTheme.colorScheme.error)
             }
         }
-        predictionData != null -> {
+        predictionData.isNotEmpty() -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)
-
             ) {
-                // Title
-                //Text( text = "BSP Prediction Chart", style = MaterialTheme.typography.headlineSmall)
-
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Notifications toggle
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -170,26 +144,26 @@ fun PredictionScreen(navController: NavController, username: String, password: S
 
                 Spacer(modifier = Modifier.height(100.dp))
 
-                // TEST Notification, a button sending local notifications
-                /*Button(
-                    onClick = { triggerTestNotification(context) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp)
-                ) {
-                    Text("Send Test Notification")
-                }*/
-
-                // Chart at bottom, fills remaining space
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                 ) {
-                    PredictionChart(values = predictionData ?: emptyList(), indicators = indicators)
+                    PredictionChart(values = predictionData, indicators = indicators)
                 }
             }
         }
+    }
+}
+
+// Helper to break down numeric values
+fun extractTriplets(number: Int): List<Pair<Float, Float>> {
+    val a = (number / 1_000_000) % 1000
+    val b = (number / 1_000) % 1000
+    val c = number % 1000
+    return listOf(a, b, c).map {
+        val clamped = it.coerceIn(30, 300)
+        clamped.toFloat() to 0.5f
     }
 }
 

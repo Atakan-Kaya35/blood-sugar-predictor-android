@@ -1,31 +1,31 @@
-package com.example.bspapp
+package com.ataka.bspapp
 
+import android.content.Context
 import android.os.Bundle
-import android.view.View
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.bspapp.ui.theme.BSPAppTheme
+import androidx.lifecycle.lifecycleScope
+import com.ataka.bspapp.ui.theme.BSPAppTheme
 
-import androidx.activity.compose.setContent
 import androidx.navigation.compose.*
-import com.example.bspapp.ui.LoginScreen
-import com.example.bspapp.ui.StartTrainingScreen
-import com.example.bspapp.ui.PredictionScreen
+import com.ataka.bspapp.ui.LoginScreen
+import com.ataka.bspapp.ui.StartTrainingScreen
+import com.ataka.bspapp.ui.PredictionScreen
 
 import com.github.mikephil.charting.utils.Utils
 
 import androidx.work.*
-import com.example.bspapp.background.BspFetchWorker
-import com.example.bspapp.util.AppStateMonitor
-import com.example.bspapp.util.createNotificationChannel
+import com.ataka.bspapp.background.BspFetchWorker
+import com.ataka.bspapp.data.PredictionManager
+import com.ataka.bspapp.util.AppStateMonitor
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +41,10 @@ class MainActivity : ComponentActivity() {
         // for app state (foreground vs. background monitoring)
         AppStateMonitor.initialize(application)
 
+        AppStateMonitor.setOnForegroundCallback {
+            // Fresh inference request
+            fetchLatestInference()
+        }
 
         setContent {
             val navController = rememberNavController()
@@ -76,6 +80,29 @@ class MainActivity : ComponentActivity() {
         )
 
     }
+
+    private fun fetchLatestInference() {
+        val prefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+        val creds = prefs.getString("credentials", null)
+
+        if (creds != null) {
+            try {
+                val json = JSONObject(creds)
+                val username = json.getString("username")
+                val password = json.getString("password")
+
+                lifecycleScope.launch {
+                    Log.d("BSP", "🔄 Fetching fresh inference (foreground resume)")
+                    PredictionManager.fetchLatestInference(username, password, this@MainActivity)
+                }
+            } catch (e: Exception) {
+                Log.e("BSP", "❌ Failed to parse stored credentials", e)
+            }
+        } else {
+            Log.w("BSP", "⚠ No saved credentials for foreground fetch")
+        }
+    }
+
 }
 
 @Composable

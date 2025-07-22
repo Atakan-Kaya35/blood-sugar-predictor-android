@@ -5,14 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bspapp"
+    namespace = "com.ataka.bspapp"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.bspapp"
+        applicationId = "com.ataka.bspapp"
+        minSdk = 24
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
+        versionCode = 3
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -58,6 +59,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.runtime.livedata)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

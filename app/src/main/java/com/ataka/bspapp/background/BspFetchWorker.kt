@@ -1,4 +1,4 @@
-package com.example.bspapp.background
+package com.ataka.bspapp.background
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,9 +8,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.bspapp.R
-import com.example.bspapp.util.AppStateMonitor
-import com.example.bspapp.util.postRequest
+import com.ataka.bspapp.R
+import com.ataka.bspapp.data.PredictionRepository
+import com.ataka.bspapp.util.AppStateMonitor
+import com.ataka.bspapp.util.postRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -47,6 +48,8 @@ class BspFetchWorker(
                 )
 
                 if (!success) return@withContext Result.retry()
+
+                PredictionRepository.updatePredictions(response)
 
                 val json = JSONObject(response)
                 val safe = json.optBoolean("safeness", true)

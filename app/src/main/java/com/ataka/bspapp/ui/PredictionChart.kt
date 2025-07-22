@@ -1,4 +1,4 @@
-package com.example.bspapp.ui
+package com.ataka.bspapp.ui
 
 import android.graphics.Color
 import android.view.ViewGroup

@@ -1,4 +1,4 @@
-package com.example.bspapp.ui
+package com.ataka.bspapp.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -11,7 +11,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.bspapp.R
+import com.ataka.bspapp.R
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable

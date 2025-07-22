@@ -1,4 +1,4 @@
-package com.example.bspapp.ui.theme
+package com.ataka.bspapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
