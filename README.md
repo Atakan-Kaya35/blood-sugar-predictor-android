@@ -57,13 +57,13 @@ It offers:
 ## 🖼 **Screenshots & Demo**
 
 ### **Splash / Login**
-![Login Screen](./demos/login.jpg)
+<img src="./demos/login.jpg" alt="Login Screen" width="270"/>
 
 ### **Prediction Dashboard**
-![Dashboard](./demos/pred_page.png)
+<img src="./demos/pred_page.png" alt="Prediction Screen" width="270"/>
 
 ### **Sign-Up**
-![Dashboard](./demos/sign_up.jpg)
+<img src="./demos/sign_up.jpg" alt="Sign Up Screen" width="270"/>
 
 ---
 
